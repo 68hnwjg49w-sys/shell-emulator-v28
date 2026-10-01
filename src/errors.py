@@ -7,3 +7,7 @@ class EmulatorError(Exception):
 
 class CommandError(EmulatorError):
     """Ошибка команды: неизвестная команда или неверные аргументы."""
+
+
+class ConfigError(EmulatorError):
+    """Ошибка в параметрах запуска или связанных с ними файлах."""

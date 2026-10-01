@@ -85,5 +85,44 @@ class ReplTest(unittest.TestCase):
         self.assertIn("cd: аргументы: y", console.output)
 
 
+class RunScriptTest(unittest.TestCase):
+    """Проверяет выполнение стартового скрипта."""
+
+    def setUp(self):
+        """Создаёт ядро, консоль-заглушку и интерфейс."""
+        self.shell = Shell()
+        self.console = FakeConsole([])
+        self.repl = Repl(
+            self.shell, PROMPT, self.console.read, self.console.write
+        )
+
+    def test_input_and_output_are_shown(self):
+        """На экране видны и команды, и ответы, как в диалоге."""
+        done = self.repl.run_script([(1, "ls"), (2, "cd x")])
+        self.assertTrue(done)
+        self.assertEqual(self.console.output, [
+            PROMPT + "ls",
+            "ls: вызвана без аргументов",
+            PROMPT + "cd x",
+            "cd: аргументы: x",
+        ])
+
+    def test_stops_at_first_error(self):
+        """Скрипт останавливается на первой ошибке."""
+        commands = [(1, "ls"), (4, "wat"), (5, "cd y")]
+        self.assertFalse(self.repl.run_script(commands))
+        self.assertEqual(self.console.output[-2:], [
+            "wat: команда не найдена",
+            "стартовый скрипт остановлен: ошибка в строке 4",
+        ])
+        self.assertNotIn(PROMPT + "cd y", self.console.output)
+
+    def test_exit_stops_script(self):
+        """Команда exit завершает скрипт и работу эмулятора."""
+        self.repl.run_script([(1, "exit"), (2, "ls")])
+        self.assertFalse(self.shell.running)
+        self.assertEqual(self.console.output, [PROMPT + "exit"])
+
+
 if __name__ == "__main__":
     unittest.main()

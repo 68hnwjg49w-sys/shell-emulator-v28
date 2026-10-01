@@ -8,6 +8,7 @@ from src.errors import EmulatorError
 HOME_DIR = "~"
 UNKNOWN = "unknown"
 EXIT_ECHO = "exit"
+SCRIPT_STOPPED = "стартовый скрипт остановлен: ошибка в строке {}"
 
 
 def current_user():
@@ -47,6 +48,21 @@ class Repl:
             return False
         if answer:
             self._write(answer)
+        return True
+
+    def run_script(self, commands):
+        """Выполняет стартовый скрипт до первой ошибки.
+
+        Каждая команда выводится вместе с приглашением, как будто её
+        ввёл пользователь. Возвращает True, если ошибок не было.
+        """
+        for number, line in commands:
+            if not self._shell.running:
+                break
+            self._write(self._prompt + line)
+            if not self.run_line(line):
+                self._write(SCRIPT_STOPPED.format(number))
+                return False
         return True
 
     def loop(self):
