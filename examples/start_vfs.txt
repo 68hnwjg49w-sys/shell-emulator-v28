@@ -1,0 +1,14 @@
+# Стартовый скрипт: все команды этапов 1-3 и работа с VFS.
+# Запуск: ./run.sh --vfs vfs/deep --script examples/start_vfs.txt
+# Каталог out/saved_vfs перед запуском не должен существовать.
+
+ls
+ls -la /home
+cd home
+cd
+vfs-save out/saved_vfs
+
+# Повторное сохранение в тот же каталог — ошибка,
+# на ней выполнение скрипта остановится.
+vfs-save out/saved_vfs
+ls not-executed

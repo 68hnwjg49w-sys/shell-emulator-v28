@@ -1,9 +1,12 @@
 """Модульные тесты ядра эмулятора."""
 
+import tempfile
 import unittest
+from pathlib import Path
 
 from src.errors import CommandError
 from src.shell import Shell, tokenize
+from src.vfs import Vfs, VfsDir, VfsFile
 
 
 class TokenizeTest(unittest.TestCase):
@@ -70,6 +73,41 @@ class ShellTest(unittest.TestCase):
         with self.assertRaises(CommandError):
             self.shell.execute("exit now")
         self.assertTrue(self.shell.running)
+
+
+class VfsSaveCommandTest(unittest.TestCase):
+    """Проверяет команду vfs-save."""
+
+    def setUp(self):
+        """Создаёт ядро с небольшой VFS и временный каталог."""
+        self._tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self._tmp.name)
+        self.shell = Shell(Vfs(VfsDir({"motd": VfsFile(b"hi")})))
+
+    def tearDown(self):
+        """Удаляет временный каталог."""
+        self._tmp.cleanup()
+
+    def test_save(self):
+        """vfs-save путь сохраняет VFS на диск."""
+        target = self.base / "copy"
+        answer = self.shell.execute("vfs-save {}".format(target))
+        self.assertIn("сохранена", answer)
+        self.assertEqual((target / "motd").read_bytes(), b"hi")
+
+    def test_without_path(self):
+        """vfs-save без пути — ошибка."""
+        with self.assertRaisesRegex(CommandError, "ровно один"):
+            self.shell.execute("vfs-save")
+
+    def test_two_paths(self):
+        """vfs-save с двумя путями — ошибка."""
+        with self.assertRaises(CommandError):
+            self.shell.execute("vfs-save a b")
+
+    def test_default_vfs_is_empty(self):
+        """Без VFS ядро работает с пустой VFS."""
+        self.assertEqual(Shell().vfs.stats(), (0, 0))
 
 
 if __name__ == "__main__":

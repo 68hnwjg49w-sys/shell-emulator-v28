@@ -31,11 +31,28 @@ class MainTest(unittest.TestCase):
 
     def test_debug_output_and_script(self):
         """Параметры выводятся при запуске, затем выполняется скрипт."""
-        code, out, _ = self._main(["--vfs", "v", "--script", str(self.script)])
+        code, out, _ = self._main(["--script", str(self.script)])
         self.assertEqual(code, EXIT_OK)
-        self.assertIn("[debug]   vfs = v", out)
+        self.assertIn("[debug]   vfs = (не задан)", out)
         self.assertIn("[debug]   script = " + str(self.script), out)
         self.assertIn("ls: аргументы: a", out)
+
+    def test_vfs_motd_is_printed(self):
+        """При запуске выводится сводка по VFS и текст motd."""
+        vfs = Path(self._tmp.name) / "vfs"
+        vfs.mkdir()
+        (vfs / "motd").write_text("Привет из VFS\n", encoding="utf-8")
+        code, out, _ = self._main(["--vfs", str(vfs),
+                                   "--script", str(self.script)])
+        self.assertEqual(code, EXIT_OK)
+        self.assertIn("VFS в памяти: каталогов 0, файлов 1", out)
+        self.assertIn("Привет из VFS", out)
+
+    def test_missing_vfs(self):
+        """Отсутствующая VFS — ошибка запуска с кодом 1."""
+        code, _, err = self._main(["--vfs", "no/such/vfs"])
+        self.assertEqual(code, EXIT_CONFIG_ERROR)
+        self.assertIn("VFS не найдена", err)
 
     def test_missing_script(self):
         """Отсутствующий скрипт — ошибка запуска с кодом 1."""

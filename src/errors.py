@@ -11,3 +11,7 @@ class CommandError(EmulatorError):
 
 class ConfigError(EmulatorError):
     """Ошибка в параметрах запуска или связанных с ними файлах."""
+
+
+class VfsError(EmulatorError):
+    """Ошибка загрузки или сохранения виртуальной файловой системы."""

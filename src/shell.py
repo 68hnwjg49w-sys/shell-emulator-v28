@@ -1,8 +1,10 @@
 """Ядро эмулятора: разбор строки и выполнение команд."""
 
 from src.errors import CommandError
+from src.vfs import Vfs
 
 MAX_CD_ARGS = 1
+SAVE_ARGS = 1
 
 
 def tokenize(line):
@@ -13,13 +15,15 @@ def tokenize(line):
 class Shell:
     """Ядро эмулятора: хранит состояние и выполняет команды."""
 
-    def __init__(self):
-        """Создаёт ядро с набором встроенных команд."""
+    def __init__(self, vfs=None):
+        """Создаёт ядро с VFS и набором встроенных команд."""
+        self.vfs = vfs if vfs is not None else Vfs()
         self.running = True
         self._commands = {
             "ls": self._ls,
             "cd": self._cd,
             "exit": self._exit,
+            "vfs-save": self._vfs_save,
         }
 
     def execute(self, line):
@@ -53,6 +57,15 @@ class Shell:
             )
         self.running = False
         return ""
+
+    def _vfs_save(self, name, args):
+        """Сохраняет состояние VFS на диск: vfs-save путь."""
+        if len(args) != SAVE_ARGS:
+            raise CommandError(
+                "{}: нужен ровно один аргумент — путь".format(name)
+            )
+        self.vfs.save(args[0])
+        return "{}: VFS сохранена в {}".format(name, args[0])
 
 
 def stub_answer(name, args):
