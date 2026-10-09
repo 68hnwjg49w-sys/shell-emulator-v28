@@ -1,0 +1,38 @@
+# Стартовый скрипт этапа 5: rmdir и cp. Изменения только в памяти.
+# VFS создаёт scripts/test_edit.sh (в ней есть пустые каталоги):
+#   ./run.sh --vfs out/vfs_edit --script examples/start_stage5.txt
+# Каталог out/stage5_vfs перед запуском не должен существовать.
+
+# cp: файл под новым именем, в каталог, несколько файлов, перезапись
+ls
+cp motd motd_copy
+cp motd docs
+cp docs/a.txt docs/b.txt empty1
+ls docs
+ls empty1
+cp docs/a.txt motd_copy
+du -b motd motd_copy
+
+# cp -r: каталог под новым именем, в существующий каталог
+cp -r docs docs_backup
+du -b docs_backup
+cp -R docs empty2
+ls empty2
+
+# относительные пути после cd
+cd docs
+cp a.txt ../a_copy.txt
+cd
+ls
+
+# rmdir: пустой каталог, вложенные пустые каталоги подряд
+rmdir empty3
+rmdir tmp/cache tmp
+ls
+
+# vfs-save записывает уже изменённую VFS на диск
+vfs-save out/stage5_vfs
+
+# Ошибка: каталог не пуст, на ней скрипт остановится
+rmdir docs
+ls not-executed

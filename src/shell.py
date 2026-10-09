@@ -3,7 +3,7 @@
 from datetime import datetime
 from functools import partial
 
-from src import cmd_disk, cmd_nav, cmd_time
+from src import cmd_disk, cmd_edit, cmd_nav, cmd_time
 from src.errors import CommandError
 from src.paths import resolve
 from src.vfs import Vfs
@@ -16,6 +16,8 @@ COMMANDS = {
     "du": cmd_disk.du,
     "uptime": cmd_time.uptime,
     "cal": cmd_time.cal,
+    "rmdir": cmd_edit.rmdir,
+    "cp": cmd_edit.cp,
 }
 
 
