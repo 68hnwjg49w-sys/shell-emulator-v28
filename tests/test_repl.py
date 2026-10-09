@@ -4,6 +4,7 @@ import unittest
 
 from src.repl import Repl, build_prompt, current_host, current_user
 from src.shell import Shell
+from tests.helpers import make_shell
 
 PROMPT = "julia@mac:~$ "
 
@@ -62,12 +63,13 @@ class ReplTest(unittest.TestCase):
 
     def test_answers_and_errors_are_printed(self):
         """Ответы и ошибки выводятся, цикл продолжает работу."""
-        console = self._run(["ls a", "wat", "cd x", "exit"])
-        self.assertEqual(console.output, [
-            "ls: аргументы: a",
+        console = self._run(["du -b nope", "wat", "cal 2 2024", "exit"])
+        self.assertEqual(console.output[:2], [
+            "du: не удаётся получить доступ к 'nope': "
+            "Нет такого файла или каталога",
             "wat: команда не найдена",
-            "cd: аргументы: x",
         ])
+        self.assertIn("February 2024", console.output[2])
 
     def test_exit_stops_loop(self):
         """После exit ввод больше не читается."""
@@ -81,8 +83,8 @@ class ReplTest(unittest.TestCase):
 
     def test_ctrl_c_does_not_stop_loop(self):
         """Ctrl+D завершает работу, а Ctrl+C только сбрасывает строку."""
-        console = self._run([KeyboardInterrupt(), "cd y", "exit"])
-        self.assertIn("cd: аргументы: y", console.output)
+        console = self._run([KeyboardInterrupt(), "wat", "exit"])
+        self.assertIn("wat: команда не найдена", console.output)
 
 
 class RunScriptTest(unittest.TestCase):
@@ -98,30 +100,62 @@ class RunScriptTest(unittest.TestCase):
 
     def test_input_and_output_are_shown(self):
         """На экране видны и команды, и ответы, как в диалоге."""
-        done = self.repl.run_script([(1, "ls"), (2, "cd x")])
+        done = self.repl.run_script([(1, "cd"), (2, "cal 2 2024")])
         self.assertTrue(done)
-        self.assertEqual(self.console.output, [
-            PROMPT + "ls",
-            "ls: вызвана без аргументов",
-            PROMPT + "cd x",
-            "cd: аргументы: x",
-        ])
+        self.assertEqual(self.console.output[0], PROMPT + "cd")
+        self.assertEqual(self.console.output[1], PROMPT + "cal 2 2024")
+        self.assertIn("February 2024", self.console.output[2])
 
     def test_stops_at_first_error(self):
         """Скрипт останавливается на первой ошибке."""
-        commands = [(1, "ls"), (4, "wat"), (5, "cd y")]
+        commands = [(1, "ls"), (4, "wat"), (5, "cd")]
         self.assertFalse(self.repl.run_script(commands))
         self.assertEqual(self.console.output[-2:], [
             "wat: команда не найдена",
             "стартовый скрипт остановлен: ошибка в строке 4",
         ])
-        self.assertNotIn(PROMPT + "cd y", self.console.output)
+        self.assertNotIn(PROMPT + "cd", self.console.output)
 
     def test_exit_stops_script(self):
         """Команда exit завершает скрипт и работу эмулятора."""
         self.repl.run_script([(1, "exit"), (2, "ls")])
         self.assertFalse(self.shell.running)
         self.assertEqual(self.console.output, [PROMPT + "exit"])
+
+
+class DynamicPromptTest(unittest.TestCase):
+    """Проверяет приглашение, зависящее от текущего каталога."""
+
+    def test_prompt_changes_after_cd(self):
+        """Приглашение показывает каталог, в который перешли."""
+        shell = make_shell()
+        console = FakeConsole(["cd home", "cd julia", "cd", "exit"])
+
+        def prompt():
+            return build_prompt("julia", "mac", shell.cwd_label())
+
+        Repl(shell, prompt, console.read, console.write).loop()
+        self.assertEqual(console.prompts, [
+            "julia@mac:~$ ",
+            "julia@mac:~/home$ ",
+            "julia@mac:~/home/julia$ ",
+            "julia@mac:~$ ",
+        ])
+
+    def test_script_echo_uses_current_directory(self):
+        """В диалоге скрипта приглашение тоже меняется."""
+        shell = make_shell()
+        console = FakeConsole([])
+
+        def prompt():
+            return build_prompt("julia", "mac", shell.cwd_label())
+
+        repl = Repl(shell, prompt, console.read, console.write)
+        repl.run_script([(1, "cd home"), (2, "cd julia")])
+        self.assertEqual(console.output, [
+            "julia@mac:~$ cd home",
+            "julia@mac:~/home$ cd julia",
+        ])
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@
 в памяти, исходные файлы не изменяются.
 """
 
+import copy
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,6 +61,25 @@ class Vfs:
         if not isinstance(node, VfsFile):
             return None
         return node.data.decode(TEXT_ENCODING, errors="replace")
+
+    def get(self, parts):
+        """Возвращает узел по списку имён от корня или None."""
+        node = self.root
+        for name in parts:
+            if not isinstance(node, VfsDir):
+                return None
+            node = node.children.get(name)
+            if node is None:
+                return None
+        return node
+
+    def put(self, parts, node):
+        """Помещает узел по пути; родительский каталог должен быть."""
+        self.get(parts[:-1]).children[parts[-1]] = node
+
+    def delete(self, parts):
+        """Удаляет узел по пути из памяти."""
+        del self.get(parts[:-1]).children[parts[-1]]
 
     def stats(self):
         """Возвращает число каталогов и файлов в VFS, не считая корня."""
@@ -119,3 +139,15 @@ def _count(node):
         else:
             files += 1
     return dirs, files
+
+
+def node_size(node):
+    """Возвращает размер узла в байтах: сумму размеров всех файлов."""
+    if isinstance(node, VfsFile):
+        return len(node.data)
+    return sum(node_size(child) for child in node.children.values())
+
+
+def clone(node):
+    """Возвращает независимую копию узла со всем содержимым."""
+    return copy.deepcopy(node)

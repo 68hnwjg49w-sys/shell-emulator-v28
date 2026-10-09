@@ -1,0 +1,44 @@
+# Стартовый скрипт этапа 4: ls, cd, du, uptime, cal.
+# Запуск: ./run.sh --vfs vfs/deep --script examples/start_stage4.txt
+# Ошибка в конце: на ней выполнение скрипта остановится.
+
+# ls: текущий каталог, подробный список, служебные записи, пути
+ls
+ls -l
+ls -a
+ls -la home/julia
+ls -l -h -a home
+ls -lhq
+ls -hal home/julia
+ls -lh
+ls home etc
+ls motd
+
+# cd: относительные и абсолютные пути, .., ~ и cd без аргумента
+cd home/julia
+ls
+ls docs
+cd docs/drafts
+cd ../..
+cd /var/log
+ls -l
+cd ~
+cd
+
+# du: КиБ, байты, удобный вид, только итог, файл, несколько путей
+du
+du -b home/julia
+du -h home/julia/docs
+du -s home
+du -sh /
+du -b motd var
+
+# uptime и cal: текущий месяц, год, месяц и год
+uptime
+cal
+cal 2024
+cal 2 2024
+
+# Ошибка: такого каталога нет
+cd no_such_dir
+ls not-executed

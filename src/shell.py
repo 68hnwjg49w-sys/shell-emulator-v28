@@ -1,10 +1,22 @@
 """Ядро эмулятора: разбор строки и выполнение команд."""
 
+from datetime import datetime
+from functools import partial
+
+from src import cmd_disk, cmd_nav, cmd_time
 from src.errors import CommandError
+from src.paths import resolve
 from src.vfs import Vfs
 
-MAX_CD_ARGS = 1
 SAVE_ARGS = 1
+HOME_LABEL = "~"
+COMMANDS = {
+    "ls": cmd_nav.ls,
+    "cd": cmd_nav.cd,
+    "du": cmd_disk.du,
+    "uptime": cmd_time.uptime,
+    "cal": cmd_time.cal,
+}
 
 
 def tokenize(line):
@@ -15,16 +27,18 @@ def tokenize(line):
 class Shell:
     """Ядро эмулятора: хранит состояние и выполняет команды."""
 
-    def __init__(self, vfs=None):
-        """Создаёт ядро с VFS и набором встроенных команд."""
+    def __init__(self, vfs=None, now=datetime.now):
+        """Создаёт ядро с VFS, часами и набором встроенных команд."""
         self.vfs = vfs if vfs is not None else Vfs()
         self.running = True
+        self.cwd = []
+        self.now = now
+        self.started = now()
         self._commands = {
-            "ls": self._ls,
-            "cd": self._cd,
-            "exit": self._exit,
-            "vfs-save": self._vfs_save,
+            name: partial(handler, self) for name, handler in COMMANDS.items()
         }
+        self._commands["exit"] = self._exit
+        self._commands["vfs-save"] = self._vfs_save
 
     def execute(self, line):
         """Выполняет строку ввода и возвращает текст ответа."""
@@ -37,17 +51,13 @@ class Shell:
             raise CommandError("{}: команда не найдена".format(name))
         return handler(name, args)
 
-    @staticmethod
-    def _ls(name, args):
-        """Заглушка ls: выводит своё имя и аргументы."""
-        return stub_answer(name, args)
+    def path(self, text):
+        """Превращает путь из команды в список имён от корня VFS."""
+        return resolve(self.cwd, text)
 
-    @staticmethod
-    def _cd(name, args):
-        """Заглушка cd: принимает не больше одного аргумента."""
-        if len(args) > MAX_CD_ARGS:
-            raise CommandError("{}: слишком много аргументов".format(name))
-        return stub_answer(name, args)
+    def cwd_label(self):
+        """Текущий каталог для приглашения: ~ — корень VFS."""
+        return HOME_LABEL + "".join("/" + part for part in self.cwd)
 
     def _exit(self, name, args):
         """Завершает работу эмулятора."""
@@ -66,10 +76,3 @@ class Shell:
             )
         self.vfs.save(args[0])
         return "{}: VFS сохранена в {}".format(name, args[0])
-
-
-def stub_answer(name, args):
-    """Формирует ответ заглушки: имя команды и её аргументы."""
-    if not args:
-        return "{}: вызвана без аргументов".format(name)
-    return "{}: аргументы: {}".format(name, ", ".join(args))

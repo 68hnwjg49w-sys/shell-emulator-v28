@@ -3,6 +3,6 @@
 # последняя строка выполнена не будет.
 
 ls
-cd docs
+cd /
 wat
 ls not-executed

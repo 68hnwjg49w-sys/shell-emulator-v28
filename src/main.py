@@ -41,6 +41,17 @@ def greet(vfs):
         print(motd.rstrip("\n"))
 
 
+def make_prompt(shell):
+    """Возвращает функцию, строящую приглашение с текущим каталогом."""
+    user, host = current_user(), current_host()
+
+    def prompt():
+        """Приглашение вида username@hostname:~/каталог$."""
+        return build_prompt(user, host, shell.cwd_label())
+
+    return prompt
+
+
 def main(argv=None):
     """Запускает эмулятор и возвращает код завершения процесса."""
     try:
@@ -52,7 +63,8 @@ def main(argv=None):
         return EXIT_CONFIG_ERROR
 
     greet(vfs)
-    repl = Repl(Shell(vfs), build_prompt(current_user(), current_host()))
+    shell = Shell(vfs)
+    repl = Repl(shell, make_prompt(shell))
     repl.run_script(script)
     repl.loop()
     return EXIT_OK

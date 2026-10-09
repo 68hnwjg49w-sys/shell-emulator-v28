@@ -6,7 +6,9 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from src.main import EXIT_CONFIG_ERROR, EXIT_OK, main
+from src.main import EXIT_CONFIG_ERROR, EXIT_OK, main, make_prompt
+from src.shell import Shell
+from src.vfs import Vfs, VfsDir
 
 
 class MainTest(unittest.TestCase):
@@ -16,7 +18,7 @@ class MainTest(unittest.TestCase):
         """Создаёт временный каталог со стартовым скриптом."""
         self._tmp = tempfile.TemporaryDirectory()
         self.script = Path(self._tmp.name) / "start.txt"
-        self.script.write_text("ls a\nexit\n", encoding="utf-8")
+        self.script.write_text("cal 2 2024\nexit\n", encoding="utf-8")
 
     def tearDown(self):
         """Удаляет временный каталог."""
@@ -35,7 +37,7 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, EXIT_OK)
         self.assertIn("[debug]   vfs = (не задан)", out)
         self.assertIn("[debug]   script = " + str(self.script), out)
-        self.assertIn("ls: аргументы: a", out)
+        self.assertIn("February 2024", out)
 
     def test_vfs_motd_is_printed(self):
         """При запуске выводится сводка по VFS и текст motd."""
@@ -60,6 +62,18 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, EXIT_CONFIG_ERROR)
         self.assertIn("[debug]", out)
         self.assertIn("ошибка запуска", err)
+
+
+class PromptTest(unittest.TestCase):
+    """Проверяет приглашение с текущим каталогом."""
+
+    def test_prompt_follows_directory(self):
+        """После cd в приглашении появляется путь внутри VFS."""
+        shell = Shell(Vfs(VfsDir({"home": VfsDir()})))
+        prompt = make_prompt(shell)
+        self.assertTrue(prompt().endswith(":~$ "))
+        shell.execute("cd home")
+        self.assertTrue(prompt().endswith(":~/home$ "))
 
 
 if __name__ == "__main__":

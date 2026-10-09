@@ -39,6 +39,12 @@ class Repl:
         self._read = read
         self._write = write
 
+    def _prompt_text(self):
+        """Возвращает приглашение: строку или результат функции."""
+        if callable(self._prompt):
+            return self._prompt()
+        return self._prompt
+
     def run_line(self, line):
         """Выполняет строку; возвращает False, если произошла ошибка."""
         try:
@@ -59,7 +65,7 @@ class Repl:
         for number, line in commands:
             if not self._shell.running:
                 break
-            self._write(self._prompt + line)
+            self._write(self._prompt_text() + line)
             if not self.run_line(line):
                 self._write(SCRIPT_STOPPED.format(number))
                 return False
@@ -69,7 +75,7 @@ class Repl:
         """Читает и выполняет команды до exit или конца ввода."""
         while self._shell.running:
             try:
-                line = self._read(self._prompt)
+                line = self._read(self._prompt_text())
             except EOFError:
                 self._write(EXIT_ECHO)
                 return

@@ -40,23 +40,10 @@ class ShellTest(unittest.TestCase):
         """Пустой ввод не порождает ответа."""
         self.assertEqual(self.shell.execute("  "), "")
 
-    def test_ls_without_arguments(self):
-        """Заглушка ls сообщает, что вызвана без аргументов."""
-        self.assertEqual(self.shell.execute("ls"), "ls: вызвана без аргументов")
-
-    def test_ls_with_arguments(self):
-        """Заглушка ls выводит своё имя и аргументы."""
-        answer = self.shell.execute("ls -la /home")
-        self.assertEqual(answer, "ls: аргументы: -la, /home")
-
-    def test_cd_with_argument(self):
-        """Заглушка cd выводит своё имя и аргумент."""
-        self.assertEqual(self.shell.execute("cd docs"), "cd: аргументы: docs")
-
-    def test_cd_too_many_arguments(self):
-        """Команда cd с двумя аргументами — ошибка."""
-        with self.assertRaisesRegex(CommandError, "слишком много"):
-            self.shell.execute("cd a b")
+    def test_commands_are_registered(self):
+        """Все команды этапов 1-4 доступны."""
+        for line in ("ls", "cd", "du", "uptime", "cal 2024"):
+            self.assertIsInstance(self.shell.execute(line), str)
 
     def test_unknown_command(self):
         """Неизвестная команда — ошибка с её именем."""
